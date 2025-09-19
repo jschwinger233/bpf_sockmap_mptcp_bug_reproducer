@@ -61,6 +61,7 @@ type BpfProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type BpfMapSpecs struct {
+	Events     *ebpf.MapSpec `ebpf:"events"`
 	TcpSockets *ebpf.MapSpec `ebpf:"tcp_sockets"`
 }
 
@@ -90,11 +91,13 @@ func (o *BpfObjects) Close() error {
 //
 // It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type BpfMaps struct {
+	Events     *ebpf.Map `ebpf:"events"`
 	TcpSockets *ebpf.Map `ebpf:"tcp_sockets"`
 }
 
 func (m *BpfMaps) Close() error {
 	return _BpfClose(
+		m.Events,
 		m.TcpSockets,
 	)
 }
