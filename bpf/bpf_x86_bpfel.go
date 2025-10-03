@@ -8,9 +8,29 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"structs"
 
 	"github.com/cilium/ebpf"
 )
+
+type BpfEvent struct {
+	_          structs.HostLayout
+	TsNs       uint64
+	Sk         uint64
+	Pid        uint32
+	LocalIp4   uint32
+	RemoteIp4  uint32
+	LocalPort  uint16
+	RemotePort uint16
+	Op         uint8
+	Pname      [16]uint8
+	_          [7]byte
+}
+
+type BpfGlobal struct {
+	_   structs.HostLayout
+	Cnt uint64
+}
 
 // LoadBpf returns the embedded CollectionSpec for Bpf.
 func LoadBpf() (*ebpf.CollectionSpec, error) {
@@ -54,6 +74,8 @@ type BpfSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type BpfProgramSpecs struct {
+	FexitSysAccept     *ebpf.ProgramSpec `ebpf:"fexit_sys_accept"`
+	FexitSysAccept4    *ebpf.ProgramSpec `ebpf:"fexit_sys_accept4"`
 	SockopsTcpLifetime *ebpf.ProgramSpec `ebpf:"sockops_tcp_lifetime"`
 }
 
@@ -61,14 +83,18 @@ type BpfProgramSpecs struct {
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type BpfMapSpecs struct {
-	Events     *ebpf.MapSpec `ebpf:"events"`
-	TcpSockets *ebpf.MapSpec `ebpf:"tcp_sockets"`
+	Events         *ebpf.MapSpec `ebpf:"events"`
+	Globals        *ebpf.MapSpec `ebpf:"globals"`
+	SockmapSockets *ebpf.MapSpec `ebpf:"sockmap_sockets"`
+	TcpSockets     *ebpf.MapSpec `ebpf:"tcp_sockets"`
 }
 
 // BpfVariableSpecs contains global variables before they are loaded into the kernel.
 //
 // It can be passed ebpf.CollectionSpec.Assign.
 type BpfVariableSpecs struct {
+	Unused1        *ebpf.VariableSpec `ebpf:"_unused1"`
+	UnusedTaskInfo *ebpf.VariableSpec `ebpf:"_unused_task_info"`
 }
 
 // BpfObjects contains all objects after they have been loaded into the kernel.
@@ -91,13 +117,17 @@ func (o *BpfObjects) Close() error {
 //
 // It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type BpfMaps struct {
-	Events     *ebpf.Map `ebpf:"events"`
-	TcpSockets *ebpf.Map `ebpf:"tcp_sockets"`
+	Events         *ebpf.Map `ebpf:"events"`
+	Globals        *ebpf.Map `ebpf:"globals"`
+	SockmapSockets *ebpf.Map `ebpf:"sockmap_sockets"`
+	TcpSockets     *ebpf.Map `ebpf:"tcp_sockets"`
 }
 
 func (m *BpfMaps) Close() error {
 	return _BpfClose(
 		m.Events,
+		m.Globals,
+		m.SockmapSockets,
 		m.TcpSockets,
 	)
 }
@@ -106,17 +136,23 @@ func (m *BpfMaps) Close() error {
 //
 // It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type BpfVariables struct {
+	Unused1        *ebpf.Variable `ebpf:"_unused1"`
+	UnusedTaskInfo *ebpf.Variable `ebpf:"_unused_task_info"`
 }
 
 // BpfPrograms contains all programs after they have been loaded into the kernel.
 //
 // It can be passed to LoadBpfObjects or ebpf.CollectionSpec.LoadAndAssign.
 type BpfPrograms struct {
+	FexitSysAccept     *ebpf.Program `ebpf:"fexit_sys_accept"`
+	FexitSysAccept4    *ebpf.Program `ebpf:"fexit_sys_accept4"`
 	SockopsTcpLifetime *ebpf.Program `ebpf:"sockops_tcp_lifetime"`
 }
 
 func (p *BpfPrograms) Close() error {
 	return _BpfClose(
+		p.FexitSysAccept,
+		p.FexitSysAccept4,
 		p.SockopsTcpLifetime,
 	)
 }

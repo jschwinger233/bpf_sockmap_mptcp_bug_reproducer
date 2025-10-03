@@ -17,18 +17,6 @@ import (
 	"github.com/jschwinger233/aws_k8s_sockmap_crash_reproducer/bpf"
 )
 
-type event struct {
-	TsNs       uint64
-	Sk         uint64
-	Pid        uint32
-	LocalIP4   uint32 // network byte order
-	RemoteIP4  uint32 // network byte order
-	LocalPort  uint16
-	RemotePort uint16
-	Op         uint8
-	_          [7]byte // padding to 8-byte alignment
-}
-
 func ntohl4(u uint32) net.IP {
 	var b [4]byte
 	binary.LittleEndian.PutUint32(b[:], u)
@@ -74,6 +62,21 @@ func main() {
 	}
 	defer cg.Close()
 
+	for _, prog := range []*ebpf.Program{
+		objs.FexitSysAccept4,
+		objs.FexitSysAccept,
+	} {
+		fp, err := link.AttachTracing(link.TracingOptions{
+			Program:    prog,
+			AttachType: ebpf.AttachTraceFExit,
+		})
+		if err != nil {
+			fmt.Printf("link.AttachTracing recvfrom: %v", err)
+			return
+		}
+		defer fp.Close()
+	}
+
 	rd, err := ringbuf.NewReader(objs.Events)
 	if err != nil {
 		log.Fatalf("open ringbuf: %v", err)
@@ -89,17 +92,24 @@ func main() {
 			log.Fatalf("ringbuf read: %v", err)
 		}
 
-		var ev event
+		var ev bpf.BpfEvent
 		if err := binary.Read(bytes.NewReader(rec.RawSample), binary.LittleEndian, &ev); err != nil {
 			log.Printf("decode: %v", err)
 			continue
 		}
 
-		fmt.Printf("ts=%d pid=%d sk=%d local=%s:%d remote=%s:%d op=%d\n",
-			ev.TsNs, ev.Pid, ev.Sk,
-			ntohl4(ev.LocalIP4), ev.LocalPort,
-			ntohl4(ev.RemoteIP4), ev.RemotePort,
-			ev.Op)
+		switch ev.Op {
+		case 5: // PASSIVE_ESTABLISHED
+
+			fmt.Printf("Passive established: sk=0x%x %s:%d -> %s:%d\n", ev.Sk,
+				ntohl4(ev.RemoteIp4), ev.RemotePort,
+				ntohl4(ev.LocalIp4), ev.LocalPort)
+		case 0xff: // sys accept
+			fmt.Printf("sys_accept: pid=%d comm=%s sk=0x%x %s:%d -> %s:%d\n", ev.Pid, ev.Pname, ev.Sk,
+				ntohl4(ev.RemoteIp4), ev.RemotePort,
+				ntohl4(ev.LocalIp4), ev.LocalPort)
+
+		}
 	}
 }
 
