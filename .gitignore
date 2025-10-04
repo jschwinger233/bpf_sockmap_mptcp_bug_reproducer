@@ -30,6 +30,6 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
-aws_k8s_sockmap_crash_reproducer
+bpf_sockmap_mptcp_bug_reproducer
 tags
 srv

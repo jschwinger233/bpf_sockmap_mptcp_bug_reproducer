@@ -79,7 +79,7 @@ int sockops_tcp_lifetime(struct bpf_sock_ops *skops)
 		};
 
 		/* LISTEN 0      4096               *:61678            *:* users:(("aws-k8s-agent",pid=4258,fd=9)) */
-		if (ev.local_port != 61678)
+		if (ev.local_port != 8080)
 			return SK_PASS;
 
 		bpf_ringbuf_output(&events, &ev, sizeof(ev), 0);

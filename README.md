@@ -12,7 +12,14 @@ Linux ip-10-53-184-176.ap-southeast-1.compute.internal 6.1.140-154.222.amzn2023.
 
 ## MPTCP
 
-```
+```shell
 gcc -static -o srv ./mptcp_srv/srv.c
 ./srv
+```
+
+## Sockmap
+
+```shell
+go generate ./... && CGO_ENABLED=0 go build .
+./bpf_sockmap_mptcp_bug_reproducer
 ```

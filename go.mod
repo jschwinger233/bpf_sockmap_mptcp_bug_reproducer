@@ -1,4 +1,4 @@
-module github.com/jschwinger233/aws_k8s_sockmap_crash_reproducer
+module github.com/jschwinger233/bpf_sockmap_mptcp_bug_reproducer
 
 go 1.24.4
 

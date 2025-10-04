@@ -14,7 +14,7 @@ import (
 	"github.com/cilium/ebpf/link"
 	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/ebpf/rlimit"
-	"github.com/jschwinger233/aws_k8s_sockmap_crash_reproducer/bpf"
+	"github.com/jschwinger233/bpf_sockmap_mptcp_bug_reproducer/bpf"
 )
 
 func ntohl4(u uint32) net.IP {
